@@ -2,7 +2,7 @@ Branding Brand Fork
 =================
 
 This version has diverged from mdsol's marathon_cookbook until pull request
-#25 is merged back in. The version string is 2.0.0 for our version.
+25 is merged back in. The version string is 2.0.0 for our version.
 
 Marathon Cookbook
 =================
