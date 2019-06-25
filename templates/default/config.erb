@@ -1,0 +1,15 @@
+LD_PRELOAD='/usr/lib/libcurl.so.3'
+
+<% @opts.each do |opt, val| %>
+<% new_opt = val == false ? "disable_#{opt}" : opt %>
+<% new_val = (val == true || val == false) ? '' : val %>
+<%= "MARATHON_#{new_opt.upcase}" %><%= "=#{new_val}" %>
+<% end %>
+
+<% java_opts_arr = [] %>
+<% @java_opts.each do |opt, val| %>
+<% new_opt = '-Xms' if opt == 'initial' %>
+<% new_opt = '-Xmx' if opt == 'max' %>
+<% java_opts_arr << "#{new_opt}#{val}" %>
+<% end %>
+<%= "JAVA_OPTS=#{java_opts_arr.join(' ')}" %>
