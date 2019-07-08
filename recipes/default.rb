@@ -24,14 +24,6 @@ link '/usr/lib/libmesos.so' do
   not_if 'test -e /usr/local/lib/libmesos.so'  # prevent recursive symlinks
 end
 
-directory node['marathon']['home_dir'] do
-  owner node['marathon']['user']
-  group node['marathon']['group']
-  mode 00755
-  recursive true
-  action :create
-end
-
 directory "#{node['marathon']['home_dir']}/environment" do
   owner node['marathon']['user']
   group node['marathon']['group']
@@ -88,32 +80,39 @@ end
 # If we have been able to find zookeeper master endpoint and zookeeper hosts
 # then set the command line options we'll be passing to runit
 if zk_url_list.count > 0
-  node.default['marathon']['options']['master'] = "zk://#{zk_url_list.join(',')}/#{zk_path}"
-  node.default['marathon']['options']['zk'] = "zk://#{zk_url_list.join(',')}/#{zk_marathon_path}"
-elsif node['marathon']['options']['master'].nil?
+  node.default['marathon']['flags']['master'] = "zk://#{zk_url_list.join(',')}/#{zk_path}"
+  node.default['marathon']['flags']['zk'] = "zk://#{zk_url_list.join(',')}/#{zk_marathon_path}"
+elsif node['marathon']['flags']['master'].nil?
   # if we don't have a user set master or a zk configured master
   # default to local mode.
-  node.default['marathon']['options']['master'] = 'local'
+  node.default['marathon']['flags']['master'] = 'local'
 end
 
 # Don't add duplicate hostname flags if the attribute is set
-if node['marathon']['options']['hostname'].nil?
+if node['marathon']['flags']['hostname'].nil?
   if node.attribute?('ec2')    
     hostname = "#{node['ec2']['public_hostname']}"
   else
     hostname = "#{node['ipaddress']}"
   end
-  node.default['marathon']['options']['hostname'] = hostname
+  node.default['marathon']['flags']['hostname'] = hostname
 end
 
-template "#{node['marathon']['config_dir']}/marathon" do
-  source 'config.erb'
-  owner node['marathon']['user']
-  group node['marathon']['group']
-  mode 00755
-  variables(
-    opts: node['marathon']['options'],
-    java_opts: node['marathon']['java_opts']
-  )
-  notifies :restart, 'service[marathon]', :delayed
+jvm = ''
+node['marathon']['jvm'].each do |opt, val|
+  jvm += "-#{opt}#{val} " if val.is_a? String
+end
+
+template 'marathon-wrapper' do
+  path     ::File.join(node['marathon']['home_dir'], 'wrapper')
+  owner    'root'
+  group    'root'
+  mode     '0755'
+  source   'wrapper.erb'
+  variables(lazy do
+    { bin:    "/usr/share/marathon/bin/marathon",
+      jvm:    jvm,
+      flags:  node['marathon']['flags'],
+      syslog: node['marathon']['syslog'] }
+  end)
 end

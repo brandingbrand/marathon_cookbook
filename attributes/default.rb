@@ -5,6 +5,11 @@ default['marathon']['version']            = '1.7.50'
 default['marathon']['source']['url']      =
   "http://repos.mesosphere.com/debian/pool/main/m/marathon/systemd-marathon_#{node['marathon']['version']}_all.deb"
 
+# default['marathon']['version']            = '1.5.1'
+# default['marathon']['source']['url']      =
+#   "http://downloads.mesosphere.com/marathon/v#{node['marathon']['version']}/marathon-#{node['marathon']['version']}.tgz"
+default['marathon']['syslog']             = true
+
 default['marathon']['zookeeper_server_list']              = []
 default['marathon']['zookeeper_port']                     = 2181
 default['marathon']['zookeeper_marathon_path']            = 'mesos'
@@ -18,7 +23,7 @@ default['marathon']['config_dir']         = '/etc/default'
 default['marathon']['log_dir']            = '/var/log/marathon'
 
 # JVM flags
-default['marathon']['jvm']['Xmx512m']     = true
+# default['marathon']['jvm']['Xmx512m']     = true
 
 # Marathon command line flags
 default['marathon']['flags']['master']    = 'zk://localhost:2181/mesos'
