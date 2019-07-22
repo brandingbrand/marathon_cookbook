@@ -1,6 +1,6 @@
 default['marathon']['home_dir']                           = '/opt/marathon'
 default['marathon']['config_dir']                         = '/etc/marathon'
-default['marathon']['log_dir']                            = '/var/log/marathon'
+default['marathon']['log_dir']                            = '/mnt/log/marathon'
 default['marathon']['jar_source']                         = 'https://s3.amazonaws.com/dl.imedidata.net/marathon/marathon-0.4.1-SNAPSHOT-jar-with-dependencies.jar'
 default['marathon']['user']                               = 'root'
 default['marathon']['group']                              = 'root'
