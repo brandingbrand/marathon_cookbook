@@ -1,0 +1,22 @@
+[Unit]
+Description=Scheduler for Apache Mesos
+Requires=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/share/marathon
+EnvironmentFile=/etc/default/marathon
+ExecStart=/usr/share/marathon/bin/marathon
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=60
+SuccessExitStatus=
+User=root
+ExecStartPre=/bin/mkdir -p /run/marathon
+ExecStartPre=/bin/chown marathon:marathon /run/marathon
+ExecStartPre=/bin/chmod 755 /run/marathon
+PermissionsStartOnly=true
+LimitNOFILE=1024
+
+[Install]
+WantedBy=multi-user.target
