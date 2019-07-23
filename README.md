@@ -51,7 +51,7 @@ Attributes
 '/opt/marathon'.
 * `node['marathon']['config_dir']` - Configuration file directory. Default: 
 '/etc/marathon/'.
-* `node['marathon']['log_dir']` - Log directory. Default: '/var/log/marathon/'.
+* `node['marathon']['log_dir']` - Log directory. Default: '/mnt/log/marathon/'.
 * `node['marathon']['jar_source']` - Jar source location url.
 * `node['marathon']['user']` - The user to run tasks as on mesos slaves. 
 Default: 'root'.

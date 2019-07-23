@@ -10,4 +10,4 @@ LD_PRELOAD="/usr/lib/libcurl.so.3" JAVA_OPTS="<%=@jvm%>" exec <%= @bin %> \
   <%= "--#{value ? '' : 'disable_'}#{flag}" %> \
 <%- end -%> 
 <%- end -%>
-2>&1 > /mnt/log/marathon/$(hostname)/current.log
+2>&1 > /mnt/log/marathon/current.log
