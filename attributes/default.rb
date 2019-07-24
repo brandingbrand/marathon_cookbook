@@ -20,7 +20,7 @@ default['marathon']['user']               = 'marathon'
 default['marathon']['group']              = 'marathon'
 default['marathon']['home_dir']           = '/opt/marathon'
 default['marathon']['config_dir']         = '/etc/default'
-default['marathon']['log_dir']            = '/var/log/marathon'
+default['marathon']['log_dir']            = '/mnt/log/marathon'
 
 # JVM flags
 # default['marathon']['jvm']['Xmx512m']     = true
