@@ -1,3 +1,6 @@
-source 'https://supermarket.getchef.com'
+#!/usr/bin/env ruby
+# ^syntax detection
+
+source 'https://supermarket.chef.io'
 
 metadata

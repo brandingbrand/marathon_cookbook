@@ -16,26 +16,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-class ::Chef::Recipe
-  include ::Marathon
-end
 
-include_recipe 'apt'
-include_recipe 'java'
-include_recipe 'runit'
-include_recipe 'mesos::install'
+include_recipe 'marathon::install'
 
 link '/usr/lib/libmesos.so' do
   to '/usr/local/lib/libmesos.so'
   not_if 'test -e /usr/local/lib/libmesos.so'  # prevent recursive symlinks
-end
-
-directory node['marathon']['home_dir'] do
-  owner node['marathon']['user']
-  group node['marathon']['group']
-  mode 00755
-  recursive true
-  action :create
 end
 
 directory "#{node['marathon']['home_dir']}/environment" do
@@ -59,27 +45,6 @@ directory node['marathon']['log_dir'] do
   action :create
 end
 
-remote_file "#{node['marathon']['home_dir']}/marathon.jar" do
-  source node['marathon']['jar_source']
-  mode '0755'
-  not_if { ::File.exist?("#{node['marathon']['home_dir']}/marathon.jar") }
-end
-
-command_line_options_array = []
-
-node['marathon']['options'].each_pair do |name, option|
-  command = ''
-  unless option.nil?
-    # Check for boolean options (ie flags with no args)
-    if !!option == option
-      command = "--#{name}"
-    else
-      command = "--#{name} #{option}"
-    end
-    command_line_options_array << command
-  end
-end
-
 zk_server_list = []
 zk_port = nil
 zk_path = nil
@@ -94,7 +59,7 @@ if node['marathon']['zookeeper_server_list'].count > 0
 end
 
 if node['marathon']['zookeeper_exhibitor_discovery'] && !node['marathon']['zookeeper_exhibitor_url'].nil?
-  zk_nodes = discover_zookeepers_with_retry(node['marathon']['zookeeper_exhibitor_url'])
+  zk_nodes = MesosHelper.discover_zookeepers_with_retry(node['marathon']['zookeeper_exhibitor_url'])
 
   if zk_nodes.nil?
     Chef::Application.fatal!('Failed to discover zookeepers.  Cannot continue')
@@ -103,6 +68,7 @@ if node['marathon']['zookeeper_exhibitor_discovery'] && !node['marathon']['zooke
   zk_server_list = zk_nodes['servers']
   zk_port = zk_nodes['port']
   zk_path = node['marathon']['zookeeper_path']
+  zk_marathon_path = node['marathon']['zookeeper_marathon_path']
 end
 
 # ZK multi-node syntax: zk://host1:port1,host2:port2,.../path
@@ -111,45 +77,42 @@ zk_server_list.each do |zk_server|
   zk_url_list << "#{zk_server}:#{zk_port}"
 end
 
-if zk_url_list.count > 0
-  zk_master_option = "--master zk://#{zk_url_list.join(',')}/#{zk_path}"
-  zk_option = "--zk zk://#{zk_url_list.join(',')}/#{zk_marathon_path}"
-end
-
 # If we have been able to find zookeeper master endpoint and zookeeper hosts
 # then set the command line options we'll be passing to runit
-if !zk_master_option.nil? && !zk_option.nil?
-  command_line_options_array << zk_master_option
-  command_line_options_array << zk_option
-else
+if zk_url_list.count > 0
+  node.default['marathon']['flags']['master'] = "zk://#{zk_url_list.join(',')}/#{zk_path}"
+  node.default['marathon']['flags']['zk'] = "zk://#{zk_url_list.join(',')}/#{zk_marathon_path}"
+elsif node['marathon']['flags']['master'].nil?
   # if we don't have a user set master or a zk configured master
   # default to local mode.
-  if node['marathon']['options']['master'].nil?
-    node.override['marathon']['options']['master'] = 'local'
-    command_line_options_array << '--master local'
-  end
+  node.default['marathon']['flags']['master'] = 'local'
 end
 
 # Don't add duplicate hostname flags if the attribute is set
-if node['marathon']['options']['hostname'].nil?
-  if node.attribute?('ec2')
-    hostname = "--hostname #{node['ec2']['public_hostname']}"
+if node['marathon']['flags']['hostname'].nil?
+  if node.attribute?('ec2')    
+    hostname = "#{node['ec2']['public_hostname']}"
   else
-    hostname = "--hostname #{node['ipaddress']}"
+    hostname = "#{node['ipaddress']}"
   end
+  node.default['marathon']['flags']['hostname'] = hostname
 end
 
-command_line_options_array << hostname
-
-template "#{node['marathon']['config_dir']}/marathon.conf" do
-  source 'marathon.conf.erb'
-  owner node['marathon']['user']
-  group node['marathon']['group']
-  mode 00755
-  variables(
-    command_line_options: command_line_options_array.join(' '),
-  )
-  notifies :restart, 'runit_service[marathon]', :delayed
+jvm = ''
+node['marathon']['jvm'].each do |opt, val|
+  jvm += "-#{opt}#{val} " if val.is_a? String
 end
 
-runit_service 'marathon'
+template 'marathon-wrapper' do
+  path     ::File.join(node['marathon']['home_dir'], 'wrapper')
+  owner    'root'
+  group    'root'
+  mode     '0755'
+  source   'wrapper.erb'
+  variables(lazy do
+    { bin:    "/usr/share/marathon/bin/marathon",
+      jvm:    jvm,
+      flags:  node['marathon']['flags'],
+      syslog: node['marathon']['syslog'] }
+  end)
+end
